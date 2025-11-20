@@ -1,4 +1,3 @@
-// routes/billRoutes.js
 const express = require('express');
 const router = express.Router();
 
@@ -9,20 +8,34 @@ const {
     deleteBill,
     getBillPdf,
     getFilteredBills,
-    getUniqueDealers  // NEW
+    getUniqueDealers,
+    getBillsByEmployee
 } = require("../controllers/billController");
 
-// CREATE BILL
+// ✅ FIX: Add debug logging for each route
+router.use((req, res, next) => {
+    console.log('🧾 Bill Route Hit:', {
+        method: req.method,
+        url: req.url,
+        timestamp: new Date().toISOString()
+    });
+    next();
+});
+
+// CREATE BILL - MAIN ENDPOINT
 router.post('/', createBill);
 
 // GET ALL BILLS
 router.get('/', getAllBills);
 
-// GET UNIQUE DEALERS - NEW
+// GET UNIQUE DEALERS
 router.get('/dealers', getUniqueDealers);
 
 // FILTER + SEARCH + PAGINATION
 router.get('/filter', getFilteredBills);
+
+// GET BILLS BY EMPLOYEE
+router.get('/employee/:employeeId', getBillsByEmployee);
 
 // GET BILL BY ID
 router.get('/:id', getBillById);
