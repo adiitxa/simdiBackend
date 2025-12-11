@@ -5,42 +5,46 @@ const PDFDocument = require("pdfkit");
 const moment = require("moment");
 const mongoose = require('mongoose');
 
-function addWatermark(doc, text = "SMIDI FERTILIZERS") {
-  const watermarkSize = 80; // Font size
-  const opacity = 0.1;      // Transparency (0.0 - 1.0)
-  const angle = -45;        // Diagonal
+function addWatermark(doc, imagePath="./assets/logo.png") {
+  const opacity = 0.3;      // transparency
+  const angle = -45;         // diagonal
+  const scale = 0.6;         // scale image down (0.0–1.0)
 
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
+  // Load image dimensions
+  const img = doc.openImage(imagePath);
+  const imgWidth = img.width * scale;
+  const imgHeight = img.height * scale;
+
   doc
     .save()
-    .font("Helvetica-Bold")
-    .fontSize(watermarkSize)
-    .fillColor("#000000")
     .opacity(opacity)
     .rotate(angle, { origin: [pageWidth / 2, pageHeight / 2] })
-    .text(
-      text,
-      pageWidth / 2 - 350, // X offset (centers better)
-      pageHeight / 2 - 50,
+    .image(
+      imagePath,
+      pageWidth / 2 - imgWidth / 2,  // center horizontally
+      pageHeight / 2 - imgHeight / 2, // center vertically
       {
-        align: "center",
-        width: 600,         // Large width so text is centered
+        width: imgWidth,
+        height: imgHeight,
       }
     )
+    .opacity(1)
     .restore();
 }
+
 
 
 // PROFESSIONAL PDF GENERATOR - Handles all bill structures
 const generateProfessionalPdf = (doc, bill) => {
   try {
-    const primaryColor = "#2E8B57";
-    const accentColor = "#FFA500";
+    const primaryColor = "#38761D";
+    const accentColor = "#79553D";
     const textColor = "#333333";
     const lightText = "#666666";
-    const borderColor = "#E0E0E0";
+    const borderColor = "black";
     const backgroundColor = "#F8FFF8";
 
     const pageWidth = doc.page.width;
@@ -84,7 +88,7 @@ const generateProfessionalPdf = (doc, bill) => {
     doc.fillColor(primaryColor)
       .fontSize(24)
       .font("Helvetica-Bold")
-      .text("AgriShop", margin, currentY);
+      .text("SMIDI Fertilizers", margin, currentY);
 
     doc.fillColor(textColor)
       .fontSize(10)
@@ -167,15 +171,19 @@ const generateProfessionalPdf = (doc, bill) => {
       if (customerItems.length > 0) {
         const tableTop = currentY;
         const rowHeight = 20;
+
         // Auto-fitting columns so they NEVER overflow
         const colWidths = (() => {
-          const percentages = [0.35, 0.10, 0.13, 0.12, 0.15, 0.15]; 
+          const percentages = [0.35, 0.10, 0.13, 0.12, 0.15, 0.15];
           return percentages.map(p => Math.floor(contentWidth * p));
         })();
 
         const totalColX = margin + colWidths.slice(0, 5).reduce((a, b) => a + b, 0);
         const totalColWidth = colWidths[5];
 
+        // -----------------------------
+        // HEADER ROW
+        // -----------------------------
         doc.rect(margin, tableTop, contentWidth, rowHeight)
           .fill(primaryColor);
 
@@ -185,17 +193,34 @@ const generateProfessionalPdf = (doc, bill) => {
             .fontSize(9)
             .font("Helvetica-Bold")
             .text(header, headerX + 8, tableTop + 7);
+
           headerX += colWidths[index];
         });
 
+        // Draw vertical grid lines for header
+        let colX = margin;
+        for (let i = 0; i < colWidths.length; i++) {
+          doc.moveTo(colX, tableTop)
+            .lineTo(colX, tableTop + rowHeight)
+            .stroke(borderColor);
+          colX += colWidths[i];
+        }
+        // Right border
+        doc.moveTo(margin + contentWidth, tableTop)
+          .lineTo(margin + contentWidth, tableTop + rowHeight)
+          .stroke(borderColor);
+
         currentY += rowHeight;
 
+        // -----------------------------
+        // TABLE BODY ROWS
+        // -----------------------------
         customerItems.forEach((item, itemIndex) => {
+          const rowTop = currentY;
           const rowColor = itemIndex % 2 === 0 ? "#FFFFFF" : backgroundColor;
-          
-          doc.rect(margin, currentY, contentWidth, rowHeight)
-            .fill(rowColor)
-            .stroke(borderColor);
+
+          doc.rect(margin, rowTop, contentWidth, rowHeight)
+            .fill(rowColor);
 
           let cellX = margin;
 
@@ -206,64 +231,73 @@ const generateProfessionalPdf = (doc, bill) => {
           const commissionAmount = item.commissionAmount || 0;
           const lineTotal = item.lineTotal || (quantity * rate + commissionAmount);
 
-          doc.fillColor(textColor)
-            .fontSize(8)
-            .font("Helvetica")
-            .text(productName, cellX + 8, currentY + 7, { width: colWidths[0] - 15 });
-          cellX += colWidths[0];
+          const fields = [
+            productName,
+            quantity.toString(),
+            `₹${rate.toFixed(2)}`,
+            `${commissionPercent.toFixed(1)}%`,
+            `₹${commissionAmount.toFixed(2)}`,
+            `₹${Number(lineTotal - commissionAmount).toFixed(2)}`
+          ];
 
-          doc.text(quantity.toString(), cellX + 8, currentY + 7);
-          cellX += colWidths[1];
+          fields.forEach((val, i) => {
+            doc.fillColor(textColor)
+              .fontSize(8)
+              .font("Helvetica")
+              .text(val, cellX + 8, rowTop + 7, { width: colWidths[i] - 15 });
 
-          doc.text(`₹${Number(rate).toFixed(2)}`, cellX + 8, currentY + 7);
-          cellX += colWidths[2];
+            cellX += colWidths[i];
+          });
 
-          doc.text(`${Number(commissionPercent).toFixed(1)}%`, cellX + 8, currentY + 7);
-          cellX += colWidths[3];
+          // Draw vertical lines for each cell
+          let vX = margin;
+          for (let i = 0; i < colWidths.length; i++) {
+            doc.moveTo(vX, rowTop)
+              .lineTo(vX, rowTop + rowHeight)
+              .stroke(borderColor);
+            vX += colWidths[i];
+          }
+          doc.moveTo(margin + contentWidth, rowTop)
+            .lineTo(margin + contentWidth, rowTop + rowHeight)
+            .stroke(borderColor);
 
-          doc.text(`₹${Number(commissionAmount).toFixed(2)}`, cellX + 8, currentY + 7);
-          cellX += colWidths[4];
-
-          doc.font("Helvetica-Bold")
-            .text(`₹${Number(lineTotal-commissionAmount).toFixed(2)}`, cellX + 8, currentY + 7);
+          // Draw horizontal bottom line
+          doc.moveTo(margin, rowTop + rowHeight)
+            .lineTo(margin + contentWidth, rowTop + rowHeight)
+            .stroke(borderColor);
 
           currentY += rowHeight;
         });
 
-        const customerSubtotal = customer.subtotal || customerItems.reduce((sum, item) => 
-          sum + (item.lineTotal || 0), 0
-        );
+        // -----------------------------
+        // SUBTOTAL UNDER TOTAL COLUMN
+        // -----------------------------
+        const customerSubtotal = customer.subtotal ||
+          customerItems.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
 
-        const customerCommissionTotal = customer.commissionTotal || customerItems.reduce((sum, item) => 
-          sum + (item.commissionAmount || 0), 0
-        );
+        const customerCommissionTotal = customer.commissionTotal ||
+          customerItems.reduce((sum, item) => sum + (item.commissionAmount || 0), 0);
 
         currentY += 10;
-        doc.rect(margin + contentWidth - 220, currentY, 220, 25)
+
+        doc.rect(totalColX, currentY, totalColWidth, 30)
           .fill(backgroundColor)
           .stroke(borderColor);
 
-        // Subtotal box aligned exactly under TOTAL column
         doc.fillColor(textColor)
           .fontSize(10)
           .font("Helvetica-Bold")
-          .text(`Subtotal:`, totalColX + 5, currentY + 8, {
-            width: totalColWidth - 10,
-            align: "left"
-          });
+          .text(`Subtotal:`, totalColX + 5, currentY + 4);
 
-        doc.text(`${Number(customerSubtotal-customerCommissionTotal).toFixed(2)}`,
+        doc.text(
+          `${Number(customerSubtotal - customerCommissionTotal).toFixed(2)}`,
           totalColX + 5,
-          currentY + 24,
-          {
-            width: totalColWidth - 10,
-            align: "left"
-          }
+          currentY + 18
         );
 
-
         currentY += 45;
-      } else {
+      }
+      else {
         doc.rect(margin, currentY, contentWidth, 30)
           .fill(backgroundColor)
           .stroke(borderColor);
@@ -293,8 +327,8 @@ const generateProfessionalPdf = (doc, bill) => {
     let totalsY = currentY + 15;
 
     // Helper for clean aligned rows
-    const writeTotalRow = (label, value, y, isFinal = false) => {
-      doc.fillColor(isFinal ? primaryColor : textColor)
+    const writeTotalRow = (label, value, y, isFinal = true) => {
+      doc.fillColor(isFinal ? "black" : textColor)
         .font(isFinal ? "Helvetica-Bold" : "Helvetica")
         .fontSize(isFinal ? 12 : 10)
         .text(label, totalsX + 10, y, {
