@@ -152,8 +152,8 @@ const generateProfessionalPdf = (doc, bill) => {
     // ==================== CUSTOMER SECTIONS ====================
     customers.forEach((customer, customerIndex) => {
       if (customerIndex > 0) {
-        doc.addPage();
         addWatermark(doc);
+        doc.addPage();
         currentY = 50;
       }
 
@@ -280,8 +280,8 @@ const generateProfessionalPdf = (doc, bill) => {
     });
 
     if (currentY > doc.page.height - 120) {
-      doc.addPage();
       addWatermark(doc);
+      doc.addPage();
       currentY = 50;
     }
 
