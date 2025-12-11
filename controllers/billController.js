@@ -97,12 +97,6 @@ const generateProfessionalPdf = (doc, bill) => {
     const headerX = pageWidth - margin - headerBoxWidth;
 
     doc.fillColor(primaryColor)
-      .fontSize(20)
-      .font("Helvetica-Bold")
-      .text("TAX INVOICE", headerX, currentY, {
-        width: headerBoxWidth,
-        align: "right"
-      })
       .fontSize(10)
       .text(`Invoice #: ${billNumber}`, headerX, currentY + 25, {
         width: headerBoxWidth,
@@ -231,13 +225,17 @@ const generateProfessionalPdf = (doc, bill) => {
           cellX += colWidths[4];
 
           doc.font("Helvetica-Bold")
-            .text(`₹${Number(lineTotal).toFixed(2)}`, cellX + 8, currentY + 7);
+            .text(`₹${Number(lineTotal-commissionAmount).toFixed(2)}`, cellX + 8, currentY + 7);
 
           currentY += rowHeight;
         });
 
         const customerSubtotal = customer.subtotal || customerItems.reduce((sum, item) => 
           sum + (item.lineTotal || 0), 0
+        );
+
+        const customerCommissionTotal = customer.commissionTotal || customerItems.reduce((sum, item) => 
+          sum + (item.commissionAmount || 0), 0
         );
 
         currentY += 10;
@@ -254,7 +252,7 @@ const generateProfessionalPdf = (doc, bill) => {
             align: "left"
           });
 
-        doc.text(`${Number(customerSubtotal).toFixed(2)}`,
+        doc.text(`${Number(customerSubtotal-customerCommissionTotal).toFixed(2)}`,
           totalColX + 5,
           currentY + 24,
           {
@@ -311,7 +309,7 @@ const generateProfessionalPdf = (doc, bill) => {
     };
 
     // Rows
-    writeTotalRow("Total Amount:", `₹${totalAmount.toFixed(2)}`, totalsY);
+    writeTotalRow("Total Amount:", `₹${(totalAmount-totalCommission).toFixed(2)}`, totalsY);
     totalsY += 18;
 
     writeTotalRow("Total Commission:", `₹${totalCommission.toFixed(2)}`, totalsY);
@@ -319,11 +317,7 @@ const generateProfessionalPdf = (doc, bill) => {
 
     if (discountPercent > 0) {
       writeTotalRow(`Discount (${discountPercent}%):`, `-₹${discountAmount.toFixed(2)}`, totalsY);
-      totalsY += 18;
     }
-
-    // Final amount
-    writeTotalRow("FINAL AMOUNT:", `₹${finalAmount.toFixed(2)}`, totalsY, true);
 
 
     currentY += 110;
