@@ -106,11 +106,11 @@ const generateProfessionalPdf = (doc, bill) => {
         width: headerBoxWidth,
         align: "right"
       })
-      .text(`Date: ${moment(createdAt).format("DD/MM/YYYY")}`, headerX, currentY + 40, {
+      .text(`Date: ${moment(createdAt).utcOffset(330).format("DD/MM/YYYY")}`, headerX, currentY + 40, {
         width: headerBoxWidth,
         align: "right"
       })
-      .text(`Time: ${moment(createdAt).format("hh:mm A")}`, headerX, currentY + 55, {
+      .text(`Time: ${moment(createdAt).utcOffset(330).format("hh:mm A")}`, headerX, currentY + 55, {
         width: headerBoxWidth,
         align: "right"
       });
