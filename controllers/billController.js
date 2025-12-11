@@ -5,6 +5,34 @@ const PDFDocument = require("pdfkit");
 const moment = require("moment");
 const mongoose = require('mongoose');
 
+function addWatermark(doc, text = "SMIDI FERTILIZERS") {
+  const watermarkSize = 80; // Font size
+  const opacity = 0.1;      // Transparency (0.0 - 1.0)
+  const angle = -45;        // Diagonal
+
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
+  doc
+    .save()
+    .font("Helvetica-Bold")
+    .fontSize(watermarkSize)
+    .fillColor("#000000")
+    .opacity(opacity)
+    .rotate(angle, { origin: [pageWidth / 2, pageHeight / 2] })
+    .text(
+      text,
+      pageWidth / 2 - 350, // X offset (centers better)
+      pageHeight / 2 - 50,
+      {
+        align: "center",
+        width: 600,         // Large width so text is centered
+      }
+    )
+    .restore();
+}
+
+
 // PROFESSIONAL PDF GENERATOR - Handles all bill structures
 const generateProfessionalPdf = (doc, bill) => {
   try {
@@ -125,6 +153,7 @@ const generateProfessionalPdf = (doc, bill) => {
     customers.forEach((customer, customerIndex) => {
       if (customerIndex > 0) {
         doc.addPage();
+        addWatermark(doc);
         currentY = 50;
       }
 
@@ -252,6 +281,7 @@ const generateProfessionalPdf = (doc, bill) => {
 
     if (currentY > doc.page.height - 120) {
       doc.addPage();
+      addWatermark(doc);
       currentY = 50;
     }
 
@@ -326,6 +356,8 @@ const generateProfessionalPdf = (doc, bill) => {
       .fontSize(8)
       .text("Thank you for your business!", margin, footerY + 10, { align: "center", width: contentWidth })
       .text("This is a computer generated invoice. No signature required.", margin, footerY + 22, { align: "center", width: contentWidth });
+
+    addWatermark(doc);
 
   } catch (err) {
     console.error("PDF Generation Error:", err);
