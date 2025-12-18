@@ -21,7 +21,7 @@ function addWatermark(doc, imagePath="./assets/logo.png") {
   doc
     .save()
     .opacity(opacity)
-    .rotate(angle, { origin: [pageWidth / 2, pageHeight / 2] })
+    //.rotate(angle, { origin: [pageWidth / 2, pageHeight / 2] })
     .image(
       imagePath,
       pageWidth / 2 - imgWidth / 2,  // center horizontally
@@ -93,24 +93,26 @@ const generateProfessionalPdf = (doc, bill) => {
     doc.fillColor(textColor)
       .fontSize(10)
       .font("Helvetica")
-      .text("Fertilizers & Agricultural Products", margin, currentY + 25)
-      .text("Contact: +91 XXXXX XXXXX | Email: info@agrishop.com", margin, currentY + 40)
-      .text("GSTIN: 07AABCU9603R1ZM", margin, currentY + 55);
+      //.text("Fertilizers & Agricultural Products", margin, currentY + 25)
+      .text("Contact: +91 XXXXX XXXXX | Email: info@agrishop.com", margin, currentY + 25)
+      //.text("GSTIN: 07AABCU9603R1ZM", margin, currentY + 55);
 
     const headerBoxWidth = 180;  // safe width — stays inside margins
     const headerX = pageWidth - margin - headerBoxWidth;
 
     doc.fillColor(primaryColor)
       .fontSize(10)
+      /*
       .text(`Invoice #: ${billNumber}`, headerX, currentY + 25, {
         width: headerBoxWidth,
         align: "right"
       })
-      .text(`Date: ${moment(createdAt).utcOffset(330).format("DD/MM/YYYY")}`, headerX, currentY + 40, {
+      */
+      .text(`Date: ${moment(createdAt).utcOffset(330).format("DD/MM/YYYY")}`, headerX, currentY+5, {
         width: headerBoxWidth,
         align: "right"
       })
-      .text(`Time: ${moment(createdAt).utcOffset(330).format("hh:mm A")}`, headerX, currentY + 55, {
+      .text(`Time: ${moment(createdAt).utcOffset(330).format("hh:mm A")}`, headerX, currentY + 20, {
         width: headerBoxWidth,
         align: "right"
       });
@@ -125,11 +127,11 @@ const generateProfessionalPdf = (doc, bill) => {
       .stroke(borderColor);
 
     doc.fillColor(textColor)
-      .fontSize(11)
+      .fontSize(15)
       .font("Helvetica-Bold")
       .text("Employee:", margin + 10, currentY + 15)
       .font("Helvetica")
-      .fontSize(10)
+      .fontSize(15)
       .text(employeeName, margin + 10, currentY + 35);
 
     doc.rect(margin + contentWidth / 2 + 10, currentY, contentWidth / 2 - 10, boxHeight)
@@ -137,13 +139,13 @@ const generateProfessionalPdf = (doc, bill) => {
       .stroke(borderColor);
 
     doc.fillColor(textColor)
-      .fontSize(11)
+      .fontSize(15)
       .font("Helvetica-Bold")
       .text("Summary:", margin + contentWidth / 2 + 20, currentY + 15)
       .font("Helvetica")
-      .fontSize(10)
+      .fontSize(15)
       .text(`${customers.length} Customer${customers.length !== 1 ? 's' : ''}`, margin + contentWidth / 2 + 20, currentY + 35)
-      .text(`${totalItems} Total Items`, margin + contentWidth / 2 + 20, currentY + 50);
+      .text(`${totalItems} Total Items`, margin + contentWidth / 2 + 20, currentY + 55);
 
     currentY += boxHeight + 30;
 
@@ -174,11 +176,11 @@ const generateProfessionalPdf = (doc, bill) => {
 
         // Auto-fitting columns so they NEVER overflow
         const colWidths = (() => {
-          const percentages = [0.35, 0.10, 0.13, 0.12, 0.15, 0.15];
+          const percentages = [0.1, 0.25, 0.10, 0.13, 0.12, 0.15, 0.15];
           return percentages.map(p => Math.floor(contentWidth * p));
         })();
 
-        const totalColX = margin + colWidths.slice(0, 5).reduce((a, b) => a + b, 0);
+        const totalColX = margin + colWidths.slice(0, 6).reduce((a, b) => a + b, 0);
         const totalColWidth = colWidths[5];
 
         // -----------------------------
@@ -188,7 +190,7 @@ const generateProfessionalPdf = (doc, bill) => {
           .fill(primaryColor);
 
         let headerX = margin;
-        ['PRODUCT', 'QTY', 'RATE', 'COMM %', 'COMM AMT', 'TOTAL'].forEach((header, index) => {
+        ['Sr. No.', 'PRODUCT', 'QTY', 'RATE', 'COMM %', 'COMM AMT', 'TOTAL'].forEach((header, index) => {
           doc.fillColor("#FFFFFF")
             .fontSize(9)
             .font("Helvetica-Bold")
@@ -232,12 +234,13 @@ const generateProfessionalPdf = (doc, bill) => {
           const lineTotal = item.lineTotal || (quantity * rate + commissionAmount);
 
           const fields = [
+            itemIndex+1,
             productName,
             quantity.toString(),
-            `₹${rate.toFixed(2)}`,
+            `${rate.toFixed(2)}`,
             `${commissionPercent.toFixed(1)}%`,
-            `₹${commissionAmount.toFixed(2)}`,
-            `₹${Number(lineTotal - commissionAmount).toFixed(2)}`
+            `${commissionAmount.toFixed(2)}`,
+            `${Number(lineTotal - commissionAmount).toFixed(2)}`
           ];
 
           fields.forEach((val, i) => {
@@ -285,14 +288,14 @@ const generateProfessionalPdf = (doc, bill) => {
           .stroke(borderColor);
 
         doc.fillColor(textColor)
-          .fontSize(10)
+          .fontSize(15)
           .font("Helvetica-Bold")
           .text(`Subtotal:`, totalColX + 5, currentY + 4);
 
         doc.text(
           `${Number(customerSubtotal - customerCommissionTotal).toFixed(2)}`,
           totalColX + 5,
-          currentY + 18
+          currentY + 20
         );
 
         currentY += 45;
@@ -328,29 +331,33 @@ const generateProfessionalPdf = (doc, bill) => {
 
     // Helper for clean aligned rows
     const writeTotalRow = (label, value, y, isFinal = true) => {
-      doc.fillColor(isFinal ? "black" : textColor)
-        .font(isFinal ? "Helvetica-Bold" : "Helvetica")
-        .fontSize(isFinal ? 12 : 10)
-        .text(label, totalsX + 10, y, {
-          width: totalsWidth - 20,
-          align: "left",
-        });
+      const fontName = isFinal ? "Helvetica-Bold" : "Helvetica";
+      const fontSize = isFinal ? 15 : 10;
 
-      doc.text(value, totalsX + 10, y, {
-        width: totalsWidth - 20,
-        align: "right",
-      });
+      doc.font(fontName).fontSize(fontSize).fillColor(isFinal ? "black" : textColor);
+
+      const fullText = `${label} ${value}`;
+      const textWidth = doc.widthOfString(fullText);
+
+      // Start so that text ENDS at the right edge of the totals box
+      const startX = totalsX + totalsWidth - 10 - textWidth;
+
+      doc.text(label + " ", startX, y, { continued: true });
+      doc.text(value);
     };
 
+
+
+
     // Rows
-    writeTotalRow("Total Amount:", `₹${(totalAmount-totalCommission).toFixed(2)}`, totalsY);
+    writeTotalRow("Total Amount:", `${(totalAmount-totalCommission).toFixed(2)}`, totalsY);
     totalsY += 18;
 
-    writeTotalRow("Total Commission:", `₹${totalCommission.toFixed(2)}`, totalsY);
+    writeTotalRow("Total Commission:", `${totalCommission.toFixed(2)}`, totalsY);
     totalsY += 18;
 
     if (discountPercent > 0) {
-      writeTotalRow(`Discount (${discountPercent}%):`, `-₹${discountAmount.toFixed(2)}`, totalsY);
+      writeTotalRow(`Discount (${discountPercent}%):`, `-${discountAmount.toFixed(2)}`, totalsY);
     }
 
 
