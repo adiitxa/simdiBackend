@@ -94,7 +94,7 @@ const generateProfessionalPdf = (doc, bill) => {
       .fontSize(10)
       .font("Helvetica")
       //.text("Fertilizers & Agricultural Products", margin, currentY + 25)
-      .text("Contact: +91 XXXXX XXXXX | Email: info@agrishop.com", margin, currentY + 25)
+      .text("Contact: +91 88066 08300 | Email: smidifertilizers.05@gmail.com", margin, currentY + 25)
       //.text("GSTIN: 07AABCU9603R1ZM", margin, currentY + 55);
 
     const headerBoxWidth = 180;  // safe width — stays inside margins
